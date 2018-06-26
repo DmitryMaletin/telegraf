@@ -150,7 +150,7 @@ func (m *Win_PerfCounters) SampleConfig() string {
 }
 
 //objectName string, counter string, instance string, measurement string, include_total bool
-func (m *Win_PerfCounters) AddItem(counterPath string, objectName string, instance string, counterName string, measurement string, includeTotal bool) error {
+func (m *Win_PerfCounters) AddItem(counterPath string, serverName string, objectName string, instance string, counterName string, measurement string, includeTotal bool) error {
 	var err error
 	var counterHandle PDH_HCOUNTER
 	if !m.query.AddEnglishCounterSupported() {
@@ -172,22 +172,7 @@ func (m *Win_PerfCounters) AddItem(counterPath string, objectName string, instan
 		if err != nil {
 			return err
 		}
-<<<<<<< HEAD
 		counters, err := m.query.ExpandWildCardPath(counterPath)
-=======
-	}
-
-	counters, err := m.query.ExpandWildCardPath(counterPath)
-	if err != nil {
-		return err
-	}
-
-	for _, counterPath := range counters {
-		var err error
-		counterHandle, err := m.query.AddCounterToQuery(counterPath)
-
-		parsedServerName, parsedObjectName, parsedInstance, parsedCounter, err := extractObjectInstanceCounterFromQuery(counterPath)
->>>>>>> Get counters from remote host
 		if err != nil {
 			return err
 		}
@@ -196,7 +181,7 @@ func (m *Win_PerfCounters) AddItem(counterPath string, objectName string, instan
 			var err error
 			counterHandle, err := m.query.AddCounterToQuery(counterPath)
 
-			objectName, instance, counterName, err = extractObjectInstanceCounterFromQuery(counterPath)
+			serverName, objectName, instance, counterName, err = extractObjectInstanceCounterFromQuery(counterPath)
 			if err != nil {
 				return err
 			}
@@ -205,8 +190,7 @@ func (m *Win_PerfCounters) AddItem(counterPath string, objectName string, instan
 				continue
 			}
 
-<<<<<<< HEAD
-			newItem := &counter{counterPath, objectName, counterName, instance, measurement,
+			newItem := &counter{counterPath, serverName, objectName, counterName, instance, measurement,
 				includeTotal, counterHandle}
 			m.counters = append(m.counters, newItem)
 
@@ -215,10 +199,7 @@ func (m *Win_PerfCounters) AddItem(counterPath string, objectName string, instan
 			}
 		}
 	} else {
-		newItem := &counter{counterPath, objectName, counterName, instance, measurement,
-=======
-		newItem := &counter{counterPath, parsedServerName, parsedObjectName, parsedCounter, parsedInstance, measurement,
->>>>>>> Get counters from remote host
+		newItem := &counter{counterPath, serverName, objectName, counterName, instance, measurement,
 			includeTotal, counterHandle}
 		m.counters = append(m.counters, newItem)
 		if m.PrintValid {
@@ -234,22 +215,18 @@ func (m *Win_PerfCounters) ParseConfig() error {
 
 	if len(m.Object) > 0 {
 		for _, PerfObject := range m.Object {
-			for _, server := range PerfObject.Servers {
+			for _, servername := range PerfObject.Servers {
 				for _, counter := range PerfObject.Counters {
 					for _, instance := range PerfObject.Instances {
 						objectname := PerfObject.ObjectName
 
 						if instance == "------" {
-							counterPath = "\\\\" + server + "\\" + objectname + "\\" + counter
+							counterPath = "\\\\" + servername + "\\" + objectname + "\\" + counter
 						} else {
-							counterPath = "\\\\" + server + "\\" + objectname + "(" + instance + ")\\" + counter
+							counterPath = "\\\\" + servername + "\\" + objectname + "(" + instance + ")\\" + counter
 						}
 
-<<<<<<< HEAD
-					err := m.AddItem(counterPath, objectname, instance, counter, PerfObject.Measurement, PerfObject.IncludeTotal)
-=======
-						err := m.AddItem(counterPath, instance, PerfObject.Measurement, PerfObject.IncludeTotal)
->>>>>>> Get counters from remote host
+						err := m.AddItem(counterPath, servername, objectname, instance, counter, PerfObject.Measurement, PerfObject.IncludeTotal)
 
 						if err != nil {
 							if PerfObject.FailOnMissing || PerfObject.WarnOnMissing {
@@ -323,8 +300,7 @@ func (m *Win_PerfCounters) Gather(acc telegraf.Accumulator) error {
 					measurement = "win_perf_counters"
 				}
 
-<<<<<<< HEAD
-				var instance = InstanceGrouping{measurement, metric.instance, metric.objectName}
+				var instance = InstanceGrouping{measurement, metric.serverName, metric.instance, metric.objectName}
 				if collectFields[instance] == nil {
 					collectFields[instance] = make(map[string]interface{})
 				}
@@ -334,11 +310,6 @@ func (m *Win_PerfCounters) Gather(acc telegraf.Accumulator) error {
 				if phderr, ok := err.(*PdhError); ok && phderr.ErrorCode != PDH_INVALID_DATA && phderr.ErrorCode != PDH_CALC_NEGATIVE_VALUE {
 					return fmt.Errorf("error while getting value for counter %s: %v", metric.counterPath, err)
 				}
-=======
-			var instance = InstanceGrouping{measurement, metric.serverName, metric.instance, metric.objectName}
-			if collectFields[instance] == nil {
-				collectFields[instance] = make(map[string]interface{})
->>>>>>> Get counters from remote host
 			}
 		} else {
 			counterValues, err := m.query.GetFormattedCounterArrayDouble(metric.counterHandle)
@@ -368,7 +339,7 @@ func (m *Win_PerfCounters) Gather(acc telegraf.Accumulator) error {
 						if measurement == "" {
 							measurement = "win_perf_counters"
 						}
-						var instance = InstanceGrouping{measurement, cValue.InstanceName, metric.objectName}
+						var instance = InstanceGrouping{measurement, metric.serverName, cValue.InstanceName, metric.objectName}
 
 						if collectFields[instance] == nil {
 							collectFields[instance] = make(map[string]interface{})
